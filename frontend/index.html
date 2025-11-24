@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nirmaan AI Transcript Scorer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+  <div class="max-w-3xl mx-auto mt-10 bg-white p-8 rounded-2xl shadow-xl border">
+
+    <h1 class="text-3xl font-bold text-center text-indigo-600 mb-6">
+      Nirmaan AI Transcript Scorer
+    </h1>
+
+    <!-- Input Box -->
+    <label class="font-semibold text-gray-700">Paste your transcript below:</label>
+    <textarea id="transcript" rows="8"
+      class="w-full mt-2 p-4 border rounded-xl shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+      placeholder="Enter transcript..."></textarea>
+
+    <!-- Button -->
+    <button onclick="scoreTranscript()"
+      class="mt-5 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl shadow-lg transition">
+      Get Score
+    </button>
+
+    <!-- Result Area -->
+    <div id="result" class="mt-8 hidden">
+      <h2 class="text-2xl font-bold text-gray-800 mb-4">Results</h2>
+
+      <!-- Score Card -->
+      <div id="overallCard" class="bg-indigo-50 border-l-4 border-indigo-600 p-5 rounded-xl shadow mb-4">
+        <p class="text-xl font-semibold text-indigo-700">Overall Score: <span id="overallScore"></span></p>
+        <p class="text-gray-600 mt-1">Word Count: <span id="wordCount"></span></p>
+      </div>
+
+      <!-- Criteria Breakdown -->
+      <div id="criteriaList"></div>
+    </div>
+
+  </div>
+
+  <!-- JavaScript -->
+  <script>
+    async function scoreTranscript() {
+      const text = document.getElementById("transcript").value.trim();
+      if (!text) {
+        alert("Please paste transcript text!");
+        return;
+      }
+
+      const resultBox = document.getElementById("result");
+      const criteriaBox = document.getElementById("criteriaList");
+      resultBox.classList.add("hidden");
+      criteriaBox.innerHTML = "";
+
+      try {
+        const response = await fetch("http://127.0.0.1:8000/score", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ transcript: text }),
+        });
+
+        const data = await response.json();
+        console.log(data);
+
+        // Show Result Area
+        resultBox.classList.remove("hidden");
+
+        // Overall Score
+        document.getElementById("overallScore").innerText = data.overall_score.toFixed(2) + "%";
+        document.getElementById("wordCount").innerText = data.word_count;
+
+        // Criteria Cards
+        data.criteria.forEach(c => {
+          const card = `
+            <div class="bg-white border rounded-xl p-4 shadow mb-4">
+              <h3 class="text-lg font-semibold text-gray-800 mb-2 capitalize">${c.criterion_id}</h3>
+
+              <p><strong>Score:</strong> ${c.score.toFixed(2)}%</p>
+              <p><strong>Weight:</strong> ${c.weight}</p>
+
+              <p class="mt-2"><strong>Keywords Found:</strong>
+                <span class="text-green-600">${c.keywords_found.join(", ") || "None"}</span>
+              </p>
+
+              <p class="mt-2"><strong>Keyword Score:</strong> ${c.keyword_score.toFixed(2)}%</p>
+              <p><strong>Length Score:</strong> ${c.length_score.toFixed(2)}%</p>
+            </div>
+          `;
+          criteriaBox.innerHTML += card;
+        });
+
+      } catch (err) {
+        alert("❌ Error connecting to backend");
+        console.error(err);
+      }
+    }
+  </script>
+
+</body>
+</html>
